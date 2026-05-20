@@ -1,0 +1,65 @@
+services:
+  db:
+    image: postgres:17
+    container_name: postgres_fade
+    restart: always
+    environment:
+      - POSTGRES_USER=fade
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=fade
+    volumes:
+      - fadedata:/var/lib/postgresql/data
+    networks:
+      - net_fade
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    volumes:
+      - redisfadedata:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      - net_fade
+
+  api:
+    image: alisson9986/api-fade:latest
+    container_name: api
+    restart: always
+    env_file:
+      - .env
+    depends_on:
+      - db
+    networks:
+      - net_fade
+  
+  dash:
+    image: alisson9986/dash-fade:latest
+    container_name: dash
+    restart: always
+    depends_on:
+      - api
+    networks:
+      - net_fade
+  
+  nginx:
+    image: nginx:latest
+    container_name: nginx_fade
+    restart: always
+    ports:
+      - "1760:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api
+      - dash
+    networks:
+      - net_fade
+
+networks:
+  net_fade:
+    driver: bridge
+
+volumes:
+  fadedata:
+  redisfadedata:
